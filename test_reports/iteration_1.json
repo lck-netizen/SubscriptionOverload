@@ -1,0 +1,43 @@
+{
+  "summary": "Completed end-to-end testing (backend + frontend) of Subscription Overload Manager. All 21 pytest backend tests pass (100%). Frontend flows work except for one integration bug: after adding a subscription via the header/sidebar Add button (which opens the AppShell-global modal), Subscriptions list and Dashboard do not auto-refresh — data is persisted but UI shows stale state until a reload/navigation.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [
+      {
+        "flow": "Add subscription via global modal (header 'Add subscription' / sidebar 'New subscription' buttons on Subscriptions page)",
+        "issue": "After POST /subscriptions succeeds and toast 'Subscription added.' shows, the Subscriptions list remains empty and Dashboard counts stay at 0 until a full page reload or navigation away-and-back. Root cause: AppShell.jsx line 153 renders SubscriptionModal with onSaved={() => setAddOpen(false)} — it only closes the modal; it does not notify Subscriptions.jsx or Dashboard.jsx to refetch. (In contrast, the EDIT flow at Subscriptions.jsx line 190 correctly calls load() in onSaved.)",
+        "affected_selectors": ["[data-testid='header-add-subscription']", "[data-testid='subs-add-button']", "[data-testid='modal-save-button']"]
+      }
+    ],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "Fix stale state after adding a subscription from the global (AppShell) modal. Simplest fix: pass a refresh callback via useOutletContext (e.g., register a setter from Subscriptions/Dashboard) or use a lightweight event bus / shared React context so onSaved triggers a refetch on Subscriptions list AND Dashboard summary. Alternative: have Subscriptions.jsx render its own add-modal instead of relying on AppShell's global modal, mirroring how the edit flow already works (line 190)."
+  ],
+  "critical_code_review_comments": [
+    "AppShell.jsx (line 153): the global SubscriptionModal's onSaved={() => setAddOpen(false)} does not propagate a 'data changed' signal to children; this causes stale UI on Subscriptions + Dashboard after add.",
+    "Edit vs Add modals are duplicated: Subscriptions.jsx renders a second SubscriptionModal (line 190) only for edit — consider consolidating into a single shared data-refresh mechanism.",
+    "Backend /api/recommendations can emit duplicate 'reminder' suggestions for subs renewing ≤3 days if they also match the upcoming-renewal block — not incorrect, but consider deduping by subscription_id + type for cleaner UI."
+  ],
+  "updated_files": [
+    "/app/backend/tests/backend_test.py"
+  ],
+  "success_rate": {
+    "backend": "100% (21/21 pytest tests passed)",
+    "frontend": "~90% (all flows work; 1 UX integration bug on add-subscription refresh)"
+  },
+  "test_credentials": "demo@example.com / demo123 (confirmed working). Fresh registrations also working.",
+  "seed_data_creation": "Tests register TEST_<uuid>@example.com users with Netflix/AWS/Figma subscriptions. Leftover DB records are minimal and scoped to their own user_ids.",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "All 21 backend pytest tests in /app/backend/tests/backend_test.py pass. Only remaining issue is the frontend refresh bug on add-subscription (see integration_issues). After main agent fixes AppShell's SubscriptionModal onSaved callback to propagate a reload, re-run the Playwright script: register new user → Subscriptions page → click 'New subscription' → fill Netflix/649/future date → Save → assert Netflix appears in the list WITHOUT reload. Also verify Dashboard KPIs update without reload.",
+  "rca_of_the_issue": "Bug: Adding a subscription from header/sidebar global modal leaves UI stale. Reproduction: (1) register fresh user, (2) go to /app/subscriptions, (3) click New subscription, (4) fill form and save → toast shows 'Subscription added.' but 'Showing 0' persists. (5) reload page → sub now appears. RCA: AppShell.jsx line 153 wires onSaved to only close the modal. Subscriptions.jsx and Dashboard.jsx each fetch data in their own useEffect and have no subscription to a refresh event. Mitigation: expose a refreshKey/bumpRefresh function via useOutletContext from AppShell and re-run load() when it changes; or emit a window event ('som:subs-changed') and have Subscriptions/Dashboard listen via useEffect."
+}
