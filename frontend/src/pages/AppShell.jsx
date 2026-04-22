@@ -22,6 +22,10 @@ export default function AppShell() {
     const [notifOpen, setNotifOpen] = useState(false);
     const [addOpen, setAddOpen] = useState(false);
     const [unread, setUnread] = useState(0);
+    // Simple "refresh token" — bumped whenever data mutates globally.
+    // Dashboard/Subscriptions/Analytics read this via useOutletContext() and refetch.
+    const [refreshTick, setRefreshTick] = useState(0);
+    const bumpRefresh = () => setRefreshTick((n) => n + 1);
 
     // Poll notifications every 45s to keep bell badge fresh
     useEffect(() => {
@@ -144,13 +148,17 @@ export default function AppShell() {
                 </header>
 
                 <main className="flex-1 p-6 sm:p-8 max-w-[1400px] w-full mx-auto">
-                    <Outlet context={{ openAdd: () => setAddOpen(true) }} />
+                    <Outlet context={{ openAdd: () => setAddOpen(true), refreshTick, bumpRefresh }} />
                 </main>
             </div>
 
             {/* Slide-over panels */}
             <NotificationsPanel open={notifOpen} onClose={() => setNotifOpen(false)} onChanged={(n) => setUnread(n)} />
-            <SubscriptionModal open={addOpen} onClose={() => setAddOpen(false)} onSaved={() => setAddOpen(false)} />
+            <SubscriptionModal
+                open={addOpen}
+                onClose={() => setAddOpen(false)}
+                onSaved={() => { setAddOpen(false); bumpRefresh(); }}
+            />
         </div>
     );
 }

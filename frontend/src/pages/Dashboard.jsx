@@ -8,7 +8,7 @@ import { TrendingUp, Layers, Calendar, AlertTriangle, ArrowRight, Sparkles } fro
 import RecommendationCard from '@/components/RecommendationCard';
 
 export default function Dashboard() {
-    const { openAdd } = useOutletContext();
+    const { openAdd, refreshTick } = useOutletContext();
     const navigate = useNavigate();
     const [summary, setSummary] = useState(null);
     const [recs, setRecs] = useState([]);
@@ -28,7 +28,8 @@ export default function Dashboard() {
         }
     };
 
-    useEffect(() => { load(); }, []);
+    // Refetch on mount and whenever the global refresh tick changes
+    useEffect(() => { load(); }, [refreshTick]);
 
     if (loading) return <LoadingSkeleton />;
 

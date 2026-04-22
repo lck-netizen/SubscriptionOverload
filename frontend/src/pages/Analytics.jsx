@@ -2,6 +2,7 @@
    ANALYTICS PAGE — Charts using Recharts (monthly trend, category pie, forecast).
 ============================================================ */
 import React, { useEffect, useState } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { api, formatINR } from '@/lib/api';
 import {
     ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid,
@@ -11,6 +12,7 @@ import {
 const COLORS = ['#002FA7', '#16A34A', '#D97706', '#7C3AED', '#DC2626', '#0EA5E9', '#DB2777', '#52525B'];
 
 export default function Analytics() {
+    const { refreshTick } = useOutletContext();
     const [summary, setSummary] = useState(null);
     const [forecast, setForecast] = useState(null);
 
@@ -23,7 +25,7 @@ export default function Analytics() {
             setSummary(s.data);
             setForecast(f.data);
         })();
-    }, []);
+    }, [refreshTick]);
 
     if (!summary || !forecast) {
         return <div className="h-80 skeleton" />;

@@ -11,7 +11,7 @@ import SubscriptionModal from '@/components/SubscriptionModal';
 const ALL_CATEGORIES = ['All', 'OTT', 'Music', 'Cloud', 'SaaS', 'Productivity', 'Gaming', 'News', 'Fitness', 'Other'];
 
 export default function Subscriptions() {
-    const { openAdd } = useOutletContext();
+    const { openAdd, refreshTick, bumpRefresh } = useOutletContext();
     const [subs, setSubs] = useState([]);
     const [query, setQuery] = useState('');
     const [cat, setCat] = useState('All');
@@ -26,7 +26,8 @@ export default function Subscriptions() {
             setSubs(data);
         } finally { setLoading(false); }
     };
-    useEffect(() => { load(); }, []);
+    // Refetch on mount and whenever data mutates elsewhere (global refresh tick)
+    useEffect(() => { load(); }, [refreshTick]);
 
     const filtered = useMemo(() => {
         return subs
@@ -45,17 +46,17 @@ export default function Subscriptions() {
         if (!window.confirm('Delete this subscription?')) return;
         await api.delete(`/subscriptions/${id}`);
         toast.success('Deleted.');
-        load();
+        bumpRefresh();
     };
     const onToggleStatus = async (s) => {
         await api.put(`/subscriptions/${s.id}`, { status: s.status === 'active' ? 'cancelled' : 'active' });
         toast.success(s.status === 'active' ? 'Marked cancelled.' : 'Reactivated.');
-        load();
+        bumpRefresh();
     };
     const onMarkUsed = async (id) => {
         await api.post(`/subscriptions/${id}/use`);
         toast.success('Marked as used today.');
-        load();
+        bumpRefresh();
     };
 
     return (
