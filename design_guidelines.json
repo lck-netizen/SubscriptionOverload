@@ -1,0 +1,151 @@
+{
+  "theme": "light",
+  "archetype": "4 - Swiss & High-Contrast",
+  "domain": "SaaS / Finance (Subscription Management)",
+  "emotional_tone": "Objective, clear, highly organized, stress-relieving",
+  "design_philosophy": {
+    "core": "Light, clean, and minimalist design focused on usability and handling 'overload'. Priority on negative space, sharp data presentation, and clear hierarchy.",
+    "rules": [
+      "No muddy gray transparency. Surfaces must be flat, solid, or use high-end crystal glassmorphism for overlays.",
+      "Strict grid hierarchy (The Control Room grid). Dense and compact data spacing, but generous container padding.",
+      "Visual tension through contrast: sharp 1px borders against soft, generous padding.",
+      "Minimalist means color is function. 95% of UI is monochrome. Color (Blue/Red) exists ONLY to guide user action or indicate status."
+    ]
+  },
+  "typography": {
+    "strategy": "The 'Swiss Brutalist' adapted for Dashboard SaaS. Radical contrast between headings and body, ensuring data legibility.",
+    "fonts": {
+      "heading": {
+        "family": "Cabinet Grotesk",
+        "fallback": "sans-serif",
+        "usage": "Use for all H1, H2, and H3 headers. Apply tracking-tight for all sizes above 32px."
+      },
+      "body": {
+        "family": "IBM Plex Sans",
+        "fallback": "sans-serif",
+        "usage": "Use for body text, data tables, and input fields. Optimal for numerical data (INR ₹) alignment."
+      }
+    },
+    "scales": {
+      "h1": "text-4xl sm:text-5xl font-bold tracking-tight",
+      "h2": "text-2xl sm:text-3xl font-semibold tracking-tight",
+      "h3": "text-xl sm:text-2xl font-medium",
+      "h4": "text-lg sm:text-xl font-medium",
+      "body": "text-base font-normal leading-relaxed",
+      "label": "text-xs font-semibold uppercase tracking-[0.2em] text-neutral-500",
+      "data_metric": "text-3xl sm:text-4xl font-light tracking-tighter"
+    }
+  },
+  "colors": {
+    "background": {
+      "app": "#F9F9F9",
+      "surface": "#FFFFFF",
+      "surface_hover": "#F3F4F6",
+      "overlay": "rgba(255, 255, 255, 0.7)"
+    },
+    "text": {
+      "primary": "#0A0A0A",
+      "secondary": "#52525B",
+      "tertiary": "#A1A1AA",
+      "inverse": "#FFFFFF"
+    },
+    "brand": {
+      "primary": "#002FA7",
+      "primary_hover": "#002585",
+      "accent": "#002FA7"
+    },
+    "status": {
+      "danger": "#DC2626",
+      "danger_bg": "#FEF2F2",
+      "success": "#16A34A",
+      "success_bg": "#F0FDF4",
+      "warning": "#D97706",
+      "warning_bg": "#FFFBEB"
+    },
+    "borders": {
+      "default": "#E5E7EB",
+      "focus": "#002FA7"
+    }
+  },
+  "layout_and_spacing": {
+    "strategy": "The Control Room Grid",
+    "dashboard_grid": {
+      "container": "grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6",
+      "spans": {
+        "summary_widget": "col-span-1",
+        "main_chart": "col-span-1 md:col-span-2 lg:col-span-3",
+        "side_feed": "col-span-1 row-span-2"
+      }
+    },
+    "surfaces": {
+      "card": "bg-white border border-neutral-200 rounded-lg shadow-sm",
+      "modal": "bg-white border border-neutral-200 rounded-xl shadow-[0_8px_32px_rgba(0,0,0,0.12)] backdrop-blur-xl",
+      "header_sticky": "bg-white/80 backdrop-blur-md border-b border-neutral-200 z-50"
+    },
+    "spacing": {
+      "padding": "p-6 sm:p-8",
+      "gap": "gap-4 sm:gap-6",
+      "section_y": "py-12 sm:py-16"
+    }
+  },
+  "components": {
+    "buttons": {
+      "primary": "bg-[#002FA7] text-white hover:bg-[#002585] rounded-md px-6 py-2.5 font-medium transition-colors",
+      "secondary": "bg-white text-[#0A0A0A] border border-neutral-200 hover:bg-neutral-50 rounded-md px-6 py-2.5 font-medium transition-colors",
+      "danger": "bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 rounded-md px-6 py-2.5 font-medium transition-colors"
+    },
+    "inputs": {
+      "base": "bg-white border border-neutral-200 rounded-md px-4 py-2 text-[#0A0A0A] placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-[#002FA7]/20 focus:border-[#002FA7] transition-all"
+    },
+    "badges": {
+      "base": "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-neutral-100 text-neutral-800"
+    },
+    "shadcn_overrides": {
+      "card": "Override default Vercel-like heavy shadows. Use flat surfaces with 1px neutral borders. No rounding beyond 8px.",
+      "tabs": "Use border-b style tabs instead of pill styles for a cleaner, technical layout."
+    }
+  },
+  "interactions_and_motion": {
+    "hover_states": "All interactive rows (like subscription list items) must subtly change background (to neutral-50) and reveal secondary actions (edit/cancel).",
+    "transitions": "Use 'transition-all duration-200 ease-out' for micro-interactions (buttons, inputs, row hovers).",
+    "loading": "Use minimalist skeleton loaders with subtle pulse animation matching the grid structure."
+  },
+  "accessibility": {
+    "contrast": "Ensure pure black or dark gray text on white/off-white backgrounds. Brand blue must have 4.5:1 contrast against white.",
+    "focus": "All focus states must use a 2px ring in primary blue.",
+    "testing": "All interactive elements MUST include data-testid attribute formatted as kebab-case, role-based (e.g., data-testid='add-subscription-button')."
+  },
+  "icons": {
+    "library": "lucide-react",
+    "styling": "Use strokeWidth={1.5} for a sharp, minimalist technical feel."
+  },
+  "media": {
+    "image_urls": {
+      "brand_logo": {
+        "url": "https://images.unsplash.com/photo-1764601841441-34ebb3d42a78?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NTZ8MHwxfHNlYXJjaHwxfHxtaW5pbWFsaXN0JTIwYWJzdHJhY3QlMjBnZW9tZXRyaWMlMjBsb2dvJTIwaWNvbnxlbnwwfHx8fDE3NzY4Mzk2ODd8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Minimalist geometric icon for the App Logo/Branding. Use in Nav header and Login screen.",
+        "category": "logo"
+      },
+      "user_avatar": {
+        "url": "https://images.unsplash.com/photo-1758613654360-45f1ff78c0cf?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxODl8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjBwb3J0cmFpdCUyMG1pbmltYWxpc3R8ZW58MHx8fHwxNzc2ODM5Njc2fDA&ixlib=rb-4.1.0&q=85",
+        "description": "Professional minimalist portrait for the user profile avatar in the dashboard.",
+        "category": "avatar"
+      },
+      "auth_background": {
+        "url": "https://images.unsplash.com/photo-1770009971150-f50bc7d373a4?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjY2NzN8MHwxfHNlYXJjaHwxfHxtaW5pbWFsaXN0JTIwYXJjaGl0ZWN0dXJhbCUyMGFic3RyYWN0JTIwd2hpdGUlMjBnZW9tZXRyaWMlMjBzaGFwZXN8ZW58MHx8fHwxNzc2ODM5Njg3fDA&ixlib=rb-4.1.0&q=85",
+        "description": "Abstract architectural geometric background for the Authentication/Login split-screen layout.",
+        "category": "background"
+      }
+    }
+  },
+  "instructions_to_main_agent": [
+    "Strictly adhere to the typography pairing: Cabinet Grotesk (Headings) and IBM Plex Sans (Body). Load them properly via Google Fonts or Fontsource.",
+    "Do NOT use 'Inter' for headings. Never.",
+    "Implement a 'Control Room' dense grid for the analytics dashboard but keep padding generous within individual cards.",
+    "Never use generic deep drop shadows on cards. Use 1px borders with maximum 8px border-radius.",
+    "All currency must be formatted as INR (₹). Use Recharts for the Expense Analytics and ensure tooltips inherit the minimalist styling (white bg, 1px border).",
+    "Apply data-testid to every clickable element and form input for testing.",
+    "Do not use placeholder URLs. Use ONLY the exact media URLs provided in this JSON.",
+    "Ensure the application handles state transitions smoothly using React Framer Motion or standard CSS transitions as defined in the interactions object."
+  ]
+}
