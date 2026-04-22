@@ -34,6 +34,7 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/budget', budgetRoutes);
 app.use('/api/notifications', notifRoutes);
 app.use('/api/recommendations', require('./routes/recommendationRoutes'));
+app.use('/api/demo', require('./routes/demoRoutes'));
 
 // --- Scheduler: every day at 09:00 UTC, check renewals & send emails ---
 cron.schedule('0 9 * * *', runRenewalJob, { timezone: 'UTC' });

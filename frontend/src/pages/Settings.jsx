@@ -5,13 +5,15 @@ import React, { useEffect, useState } from 'react';
 import { api, formatINR } from '@/lib/api';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
-import { Wallet, User } from 'lucide-react';
+import { Wallet, User, Mail, Send } from 'lucide-react';
 
 export default function Settings() {
     const { user } = useAuth();
     const [limit, setLimit] = useState('');
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [sending, setSending] = useState(false);
+    const [lastEmailResult, setLastEmailResult] = useState(null);
 
     useEffect(() => {
         (async () => {
@@ -30,6 +32,26 @@ export default function Settings() {
             toast.error('Failed to save.');
         } finally {
             setSaving(false);
+        }
+    };
+
+    /* Instantly send a sample renewal-reminder email — used during live demos. */
+    const sendTestEmail = async () => {
+        setSending(true);
+        try {
+            const { data } = await api.post('/demo/send-test-email');
+            setLastEmailResult(data);
+            if (data.email_status === 'sent') {
+                toast.success(`Email sent to ${data.email_to}`);
+            } else if (data.email_status === 'failed') {
+                toast.error(`Email failed: ${data.email_error}`);
+            } else {
+                toast.info('Email skipped (no API key), but notification was created.');
+            }
+        } catch (e) {
+            toast.error(e?.response?.data?.detail || 'Failed to send.');
+        } finally {
+            setSending(false);
         }
     };
 
@@ -94,6 +116,53 @@ export default function Settings() {
                         )}
                     </div>
                 )}
+            </div>
+
+            {/* Instant test email — perfect for live demos */}
+            <div className="card-flat p-6">
+                <div className="flex items-center gap-2 mb-1">
+                    <Mail size={14} strokeWidth={1.5} className="text-[#A1A1AA]" />
+                    <div className="label-uppercase">Notifications</div>
+                </div>
+                <h3 className="text-xl font-semibold tracking-tight mb-1">Send a test renewal email</h3>
+                <p className="text-sm text-[#52525B] mb-4">
+                    Triggers a sample <strong>renewal reminder</strong> email to <strong>{user?.email}</strong> and
+                    also drops an in-app notification. Use this to demo the reminder flow live.
+                </p>
+                <button
+                    onClick={sendTestEmail}
+                    disabled={sending}
+                    data-testid="send-test-email-button"
+                    className="inline-flex items-center gap-2 bg-[#0A0A0A] hover:bg-[#262626] text-white rounded-md px-5 py-2.5 text-sm font-medium disabled:opacity-60"
+                >
+                    <Send size={14} strokeWidth={1.8} />
+                    {sending ? 'Sending…' : 'Send test email now'}
+                </button>
+
+                {lastEmailResult && (
+                    <div
+                        data-testid="test-email-result"
+                        className={`mt-4 text-xs rounded-md px-3 py-2 border ${
+                            lastEmailResult.email_status === 'sent'
+                                ? 'bg-[#F0FDF4] border-[#BBF7D0] text-[#16A34A]'
+                                : lastEmailResult.email_status === 'failed'
+                                    ? 'bg-[#FEF2F2] border-[#FCA5A5] text-[#DC2626]'
+                                    : 'bg-[#FFFBEB] border-[#FCD34D] text-[#D97706]'
+                        }`}
+                    >
+                        <strong className="uppercase tracking-wider">{lastEmailResult.email_status}</strong> — to {lastEmailResult.email_to}
+                        {lastEmailResult.email_error && <> · {lastEmailResult.email_error}</>}
+                        <div className="text-[11px] text-[#52525B] mt-1">
+                            In-app notification was also created. Click the bell icon to view it.
+                        </div>
+                    </div>
+                )}
+
+                <div className="mt-3 text-[11px] text-[#A1A1AA] leading-relaxed">
+                    <strong>Heads-up for live demos:</strong> Resend only delivers to the email that verified your Resend account
+                    while in sandbox mode. If the email doesn't arrive, re-register your app with your Resend-verified
+                    email — or verify a custom domain at resend.com/domains.
+                </div>
             </div>
         </div>
     );

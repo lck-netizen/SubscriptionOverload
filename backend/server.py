@@ -615,6 +615,59 @@ async def create_notification(user_id: str, message: str, ntype: str):
 # ---------------------------------------------------------------------------
 # SECTION 11: BACKGROUND SCHEDULER — daily renewal reminder job
 # ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# SECTION 11a: INSTANT TEST EMAIL — useful for live demos / presentations
+# ---------------------------------------------------------------------------
+@api_router.post("/demo/send-test-email")
+async def send_test_email(current_user: dict = Depends(get_current_user)):
+    """
+    Immediately send a sample renewal-reminder email to the logged-in user.
+    Also creates a matching in-app notification so both channels are visible
+    during a demo.
+    NOTE: In Resend test mode, emails are only delivered to the address that
+    verified the Resend account. Register your app account with that same
+    email to actually receive the message in your inbox.
+    """
+    # Pick a subscription to reference (newest one, if any); otherwise fabricate one.
+    sub = await subs_col.find_one({"user_id": current_user["id"]}, {"_id": 0}, sort=[("created_at", -1)])
+    demo_sub = sub or {
+        "service_name": "Netflix Premium",
+        "cost": 649.0,
+        "billing_cycle": "monthly",
+        "renewal_date": (date.today() + timedelta(days=3)).isoformat(),
+        "category": "OTT",
+    }
+    days_left = 3
+
+    # 1. In-app notification
+    await create_notification(
+        current_user["id"],
+        f"[TEST] {demo_sub['service_name']} renews in {days_left} day(s) — ₹{demo_sub['cost']}",
+        "reminder",
+    )
+
+    # 2. Email (non-blocking) — errors surface but don't crash
+    email_status = "skipped"
+    email_error = None
+    if os.environ.get("RESEND_API_KEY"):
+        try:
+            await _send_renewal_email(current_user["email"], current_user["name"], demo_sub, days_left)
+            email_status = "sent"
+        except Exception as e:
+            email_status = "failed"
+            email_error = str(e)
+    else:
+        email_error = "RESEND_API_KEY not configured"
+
+    return {
+        "email_status": email_status,
+        "email_to": current_user["email"],
+        "email_error": email_error,
+        "notification_created": True,
+        "service_used": demo_sub["service_name"],
+    }
+
+
 async def _send_renewal_email(email: str, name: str, sub: dict, days_left: int):
     """Send an HTML renewal-reminder email via Resend (non-blocking)."""
     if not os.environ.get('RESEND_API_KEY'):
