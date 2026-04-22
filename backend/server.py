@@ -95,11 +95,22 @@ class UserLogin(BaseModel):
 
 
 class UserPublic(BaseModel):
-    """User data returned to frontend (no password)"""
+    """User data returned to frontend (no password)."""
     id: str
     name: str
     email: EmailStr
     created_at: datetime
+    phone: Optional[str] = ""
+    avatar_url: Optional[str] = ""
+    bio: Optional[str] = ""
+
+
+class ProfileUpdate(BaseModel):
+    """Payload for PUT /api/auth/profile — all optional."""
+    name: Optional[str] = None
+    phone: Optional[str] = None
+    avatar_url: Optional[str] = None
+    bio: Optional[str] = None
 
 
 class TokenResponse(BaseModel):
@@ -238,8 +249,21 @@ def auto_categorize(service_name: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# SECTION 7: AUTH ENDPOINTS — /register, /login, /me
+# SECTION 7: AUTH ENDPOINTS — /register, /login, /me, /profile
 # ---------------------------------------------------------------------------
+def _public_user(doc: dict) -> UserPublic:
+    """Build the API-shape UserPublic from a raw Mongo user doc."""
+    return UserPublic(
+        id=doc["id"],
+        name=doc["name"],
+        email=doc["email"],
+        created_at=datetime.fromisoformat(doc["created_at"]),
+        phone=doc.get("phone", "") or "",
+        avatar_url=doc.get("avatar_url", "") or "",
+        bio=doc.get("bio", "") or "",
+    )
+
+
 @api_router.post("/auth/register", response_model=TokenResponse)
 async def register(payload: UserRegister):
     """Create a new user account and return a JWT."""
@@ -248,7 +272,7 @@ async def register(payload: UserRegister):
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
 
-    # Build user record
+    # Build user record with profile fields seeded as empty strings
     user_id = str(uuid.uuid4())
     user_doc = {
         "id": user_id,
@@ -256,6 +280,9 @@ async def register(payload: UserRegister):
         "email": payload.email.lower(),
         "password_hash": hash_password(payload.password),
         "created_at": datetime.now(timezone.utc).isoformat(),
+        "phone": "",
+        "avatar_url": "",
+        "bio": "",
     }
     await users_col.insert_one(user_doc)
 
@@ -263,15 +290,7 @@ async def register(payload: UserRegister):
     await budget_col.insert_one({"user_id": user_id, "monthly_limit": 0.0})
 
     token = create_jwt_token(user_id)
-    return TokenResponse(
-        token=token,
-        user=UserPublic(
-            id=user_id,
-            name=payload.name,
-            email=payload.email.lower(),
-            created_at=datetime.fromisoformat(user_doc["created_at"]),
-        ),
-    )
+    return TokenResponse(token=token, user=_public_user(user_doc))
 
 
 @api_router.post("/auth/login", response_model=TokenResponse)
@@ -282,26 +301,75 @@ async def login(payload: UserLogin):
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
     token = create_jwt_token(user["id"])
-    return TokenResponse(
-        token=token,
-        user=UserPublic(
-            id=user["id"],
-            name=user["name"],
-            email=user["email"],
-            created_at=datetime.fromisoformat(user["created_at"]),
-        ),
-    )
+    return TokenResponse(token=token, user=_public_user(user))
 
 
 @api_router.get("/auth/me", response_model=UserPublic)
 async def me(current_user: dict = Depends(get_current_user)):
     """Return the authenticated user's profile."""
-    return UserPublic(
-        id=current_user["id"],
-        name=current_user["name"],
-        email=current_user["email"],
-        created_at=datetime.fromisoformat(current_user["created_at"]),
+    return _public_user(current_user)
+
+
+@api_router.put("/auth/profile", response_model=UserPublic)
+async def update_profile(payload: ProfileUpdate, current_user: dict = Depends(get_current_user)):
+    """
+    Update the user's profile (name, phone, avatar_url, bio) AND send a
+    confirmation email summarising the saved details. Returns the updated user.
+    """
+    updates = {k: v for k, v in payload.model_dump().items() if v is not None}
+    if updates:
+        await users_col.update_one({"id": current_user["id"]}, {"$set": updates})
+
+    # Fetch the fresh record so we email the *final* state
+    fresh = await users_col.find_one({"id": current_user["id"]}, {"_id": 0})
+
+    # Fire-and-forget confirmation email (in a thread — Resend SDK is sync)
+    asyncio.create_task(_send_profile_update_email(fresh))
+
+    return _public_user(fresh)
+
+
+async def _send_profile_update_email(user: dict):
+    """HTML email summarising the user's profile details after an update."""
+    if not os.environ.get("RESEND_API_KEY"):
+        logger.info("Skipping profile email — RESEND_API_KEY not set.")
+        return
+    rows = [
+        ("Name", user.get("name", "")),
+        ("Email", user.get("email", "")),
+        ("Phone", user.get("phone", "") or "—"),
+        ("Bio", user.get("bio", "") or "—"),
+        ("Avatar URL", user.get("avatar_url", "") or "—"),
+    ]
+    table_rows = "".join(
+        f'<tr><td style="padding:8px 12px;color:#52525B;font-size:12px;text-transform:uppercase;letter-spacing:0.1em">{k}</td>'
+        f'<td style="padding:8px 12px;color:#0A0A0A;font-weight:500">{v}</td></tr>'
+        for k, v in rows
     )
+    html = f"""
+    <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:24px;color:#0A0A0A">
+      <h2 style="color:#10B981;margin:0 0 16px 0">Profile Updated</h2>
+      <p>Hi {user.get('name','')},</p>
+      <p>Your SubManager profile was just updated. Here's a copy of your latest details for your records:</p>
+      <table style="width:100%;border:1px solid #E5E7EB;border-radius:8px;border-collapse:separate;border-spacing:0;margin:16px 0">
+        {table_rows}
+      </table>
+      <p style="color:#52525B;font-size:13px">
+        If you didn't make this change, please sign in and update your password.
+      </p>
+      <p style="margin-top:24px;color:#A1A1AA;font-size:12px">— Subscription Overload Manager</p>
+    </div>
+    """
+    try:
+        await asyncio.to_thread(resend.Emails.send, {
+            "from": SENDER_EMAIL,
+            "to": [user["email"]],
+            "subject": "Your SubManager profile has been updated",
+            "html": html,
+        })
+        logger.info(f"Profile-update email sent to {user['email']}")
+    except Exception as e:
+        logger.error(f"Profile email failed: {e}")
 
 
 # ---------------------------------------------------------------------------
@@ -477,13 +545,34 @@ async def analytics_forecast(current_user: dict = Depends(get_current_user)):
     return {"forecast": forecast, "monthly_avg": round(monthly, 2)}
 
 
+# Known free / cheaper alternatives — surfaces a "switch" suggestion.
+FREE_ALTERNATIVES = {
+    "spotify":        ("YouTube Music (with YT Premium) or free Spotify tier", 0.5),
+    "apple music":    ("YouTube Music or free Spotify tier", 0.5),
+    "youtube music":  ("Free Spotify with ads", 1.0),
+    "netflix":        ("Rotate with Prime Video / JioHotstar instead of keeping all", 1.0),
+    "prime":          ("Keep Prime for shopping+OTT — a single bundle replacing multiple subs", 0.0),
+    "adobe":          ("Consider Affinity / Canva Pro (one-time or cheaper)", 0.6),
+    "grammarly":      ("LanguageTool Free or Grammarly free tier", 0.8),
+    "canva":          ("Canva Free is enough for most casual design needs", 1.0),
+    "chatgpt":        ("Free GPT / Gemini / Claude tiers are available", 1.0),
+    "notion":         ("Notion Free is generous for personal use", 1.0),
+}
+
+
 @api_router.get("/recommendations")
 async def recommendations(current_user: dict = Depends(get_current_user)):
     """
-    Rule-based optimization suggestions:
-      - Unused >= 25 days (high-cost low-usage)
-      - High-cost (> ₹500/month) regardless
-      - Trial-ending (renewal in <= 3 days)
+    Rule-based optimization engine. Generates a variety of saving-focused
+    suggestions, de-duplicated per subscription per type:
+
+        1. cancel    — unused >= 25 days / never used after 14 days
+        2. downgrade — >₹500/month premium spend
+        3. reminder  — renewal in <= 3 days
+        4. yearly    — monthly billing → switch to yearly (≈20% save)
+        5. consolidate — >1 active sub in same OTT/Music category
+        6. free_alt  — known free / cheaper alternative exists
+        7. bundle    — multiple OTT + Music → suggest a bundled plan
     """
     subs = await subs_col.find(
         {"user_id": current_user["id"], "status": "active"}, {"_id": 0}
@@ -492,61 +581,92 @@ async def recommendations(current_user: dict = Depends(get_current_user)):
     now = datetime.now(timezone.utc)
     today = date.today()
     suggestions = []
+    seen = set()  # (subscription_id, type) dedupe
 
+    def add(s_id, stype, severity, name, reason, saving):
+        key = (s_id, stype)
+        if key in seen:
+            return
+        seen.add(key)
+        suggestions.append({
+            "type": stype, "severity": severity, "subscription_id": s_id,
+            "service_name": name, "reason": reason, "saving": round(saving, 2),
+        })
+
+    # ---- per-subscription rules ----
     for s in subs:
         monthly_cost = _monthly_cost(s)
 
-        # Rule 1: Not used for 25+ days
+        # 1. Unused
         if s.get("last_used"):
-            last_used_dt = datetime.fromisoformat(s["last_used"])
-            days_unused = (now - last_used_dt).days
+            days_unused = (now - datetime.fromisoformat(s["last_used"])).days
             if days_unused >= 25:
-                suggestions.append({
-                    "type": "cancel",
-                    "severity": "high",
-                    "subscription_id": s["id"],
-                    "service_name": s["service_name"],
-                    "reason": f"Unused for {days_unused} days — consider cancelling to save ₹{round(monthly_cost,0)}/month.",
-                    "saving": round(monthly_cost, 2),
-                })
+                add(s["id"], "cancel", "high", s["service_name"],
+                    f"Unused for {days_unused} days — cancel to save ₹{round(monthly_cost,0)}/month.",
+                    monthly_cost)
         elif s.get("usage_count", 0) == 0:
-            # Never marked as used and added > 14 days ago
-            created_dt = datetime.fromisoformat(s["created_at"])
-            if (now - created_dt).days >= 14:
-                suggestions.append({
-                    "type": "cancel",
-                    "severity": "medium",
-                    "subscription_id": s["id"],
-                    "service_name": s["service_name"],
-                    "reason": f"No usage recorded in {(now-created_dt).days} days. Cancel to save ₹{round(monthly_cost,0)}/month.",
-                    "saving": round(monthly_cost, 2),
-                })
+            days_since_add = (now - datetime.fromisoformat(s["created_at"])).days
+            if days_since_add >= 14:
+                add(s["id"], "cancel", "medium", s["service_name"],
+                    f"No usage recorded in {days_since_add} days. Cancel to save ₹{round(monthly_cost,0)}/month.",
+                    monthly_cost)
 
-        # Rule 2: High-cost
+        # 2. High-cost
         if monthly_cost > 500:
-            suggestions.append({
-                "type": "downgrade",
-                "severity": "low",
-                "subscription_id": s["id"],
-                "service_name": s["service_name"],
-                "reason": f"Premium spend detected (₹{round(monthly_cost,0)}/mo). Check for a cheaper tier.",
-                "saving": round(monthly_cost * 0.3, 2),
-            })
+            add(s["id"], "downgrade", "low", s["service_name"],
+                f"Premium spend detected (₹{round(monthly_cost,0)}/mo). Check for a cheaper tier.",
+                monthly_cost * 0.3)
 
-        # Rule 3: Upcoming renewal
+        # 3. Renewal soon
         try:
             rdate = datetime.fromisoformat(s["renewal_date"]).date()
             if 0 <= (rdate - today).days <= 3:
-                suggestions.append({
-                    "type": "reminder",
-                    "severity": "high",
-                    "subscription_id": s["id"],
-                    "service_name": s["service_name"],
-                    "reason": f"Renews in {(rdate - today).days} days — review before being charged.",
-                    "saving": 0,
-                })
+                add(s["id"], "reminder", "high", s["service_name"],
+                    f"Renews in {(rdate - today).days} day(s) — review before being charged.",
+                    0)
         except Exception:
             pass
+
+        # 4. Monthly → yearly (roughly 20% savings on most services)
+        if s.get("billing_cycle") == "monthly" and s.get("cost", 0) >= 200:
+            yearly_save = s["cost"] * 12 * 0.2
+            add(s["id"], "yearly", "low", s["service_name"],
+                f"Most plans save ~20% annually. Switching to yearly could save ~₹{round(yearly_save,0)}/year.",
+                yearly_save / 12)
+
+        # 5. Free / cheaper alternative known
+        name_lc = s["service_name"].lower()
+        for keyword, (suggestion, save_ratio) in FREE_ALTERNATIVES.items():
+            if keyword in name_lc and save_ratio > 0:
+                add(s["id"], "free_alt", "medium", s["service_name"],
+                    f"{suggestion}. Potential save ~₹{round(monthly_cost * save_ratio, 0)}/mo.",
+                    monthly_cost * save_ratio)
+                break
+
+    # ---- cross-subscription rules (consolidation / bundle) ----
+    by_cat: dict = {}
+    for s in subs:
+        by_cat.setdefault(s["category"], []).append(s)
+
+    for category in ("OTT", "Music"):
+        items = by_cat.get(category, [])
+        if len(items) >= 2:
+            total = sum(_monthly_cost(x) for x in items)
+            cheapest = min(items, key=_monthly_cost)
+            potential_save = total - _monthly_cost(cheapest)
+            names = ", ".join(x["service_name"] for x in items)
+            # Pin to the most expensive so user can action it
+            pricey = max(items, key=_monthly_cost)
+            add(pricey["id"], "consolidate", "medium", pricey["service_name"],
+                f"You have {len(items)} {category} services ({names}). Rotate monthly instead — keep only one active at a time.",
+                potential_save)
+
+    # Bundle cue: if user has both OTT + Music, suggest a bundle like Prime / JioHotstar with music
+    if by_cat.get("OTT") and by_cat.get("Music"):
+        first_ott = by_cat["OTT"][0]
+        add(first_ott["id"], "bundle", "low", first_ott["service_name"],
+            "You pay separately for OTT + Music. Look at bundles (e.g., Jio/Airtel/Prime) that combine both for less.",
+            sum(_monthly_cost(x) for x in by_cat["Music"]) * 0.5)
 
     return {"suggestions": suggestions}
 
