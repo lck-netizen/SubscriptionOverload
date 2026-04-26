@@ -1,137 +1,33 @@
-/* ================================================================
-   GLOBAL STYLES — Subscription Overload Manager
-   Design: Light Swiss-minimalist SaaS (Control Room grid).
-   - Headings: Cabinet Grotesk (via Fontshare)
-   - Body:     IBM Plex Sans (Google Fonts)
-   - Accent:   Klein Blue (#002FA7)
-================================================================ */
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
-@import url('https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@500,700,800,900&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-:root {
-    /* Brand + neutrals driven by design_guidelines.json */
-    --app-bg: #F9F9F9;
-    --surface: #FFFFFF;
-    --surface-hover: #F3F4F6;
-    --text-primary: #0A0A0A;
-    --text-secondary: #52525B;
-    --text-tertiary: #A1A1AA;
-    --brand: #002FA7;
-    --brand-hover: #002585;
-    --border: #E5E7EB;
-    --danger: #DC2626;
-    --success: #16A34A;
-    --warning: #D97706;
-}
-
-/* Shadcn tokens (HSL-based) mapped to our palette for component compatibility */
 @layer base {
-    :root {
-        --background: 0 0% 97.6%;            /* #F9F9F9 */
-        --foreground: 0 0% 4%;               /* #0A0A0A */
-        --card: 0 0% 100%;
-        --card-foreground: 0 0% 4%;
-        --popover: 0 0% 100%;
-        --popover-foreground: 0 0% 4%;
-        --primary: 223 100% 33%;             /* Klein Blue */
-        --primary-foreground: 0 0% 100%;
-        --secondary: 220 14% 96%;
-        --secondary-foreground: 0 0% 4%;
-        --muted: 220 14% 96%;
-        --muted-foreground: 240 4% 46%;
-        --accent: 220 14% 96%;
-        --accent-foreground: 0 0% 4%;
-        --destructive: 0 72% 51%;
-        --destructive-foreground: 0 0% 100%;
-        --border: 220 13% 91%;
-        --input: 220 13% 91%;
-        --ring: 223 100% 33%;
-        --radius: 0.5rem;
-        --chart-1: 223 100% 33%;
-        --chart-2: 160 60% 45%;
-        --chart-3: 30 80% 55%;
-        --chart-4: 280 45% 60%;
-        --chart-5: 340 75% 55%;
-    }
+  * {
+    box-sizing: border-box;
+  }
+  
+  body {
+    @apply bg-gray-50 text-gray-900 font-sans;
+    margin: 0;
+    padding: 0;
+  }
 }
 
-@layer base {
-    * {
-        @apply border-border;
-    }
-    html, body, #root {
-        height: 100%;
-    }
-    body {
-        margin: 0;
-        font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-        background: var(--app-bg);
-        color: var(--text-primary);
-        -webkit-font-smoothing: antialiased;
-        -moz-osx-font-smoothing: grayscale;
-        font-feature-settings: 'ss01', 'ss02';
-    }
-    h1, h2, h3, h4 {
-        font-family: 'Cabinet Grotesk', 'IBM Plex Sans', sans-serif;
-        letter-spacing: -0.02em;
-    }
-    code, .mono {
-        font-family: 'IBM Plex Mono', ui-monospace, monospace;
-    }
-}
-
-/* ----------------------------------------------------------------
-   Utility classes used across the app
----------------------------------------------------------------- */
-.label-uppercase {
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.2em;
-    text-transform: uppercase;
-    color: var(--text-tertiary);
-}
-
-.card-flat {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-}
-
-.row-hover {
-    transition: background-color 160ms ease-out;
-}
-.row-hover:hover {
-    background: var(--surface-hover);
-}
-
-/* Subtle entrance */
-@keyframes fadeUp {
-    from { opacity: 0; transform: translateY(4px); }
-    to   { opacity: 1; transform: translateY(0); }
-}
-.anim-fade-up {
-    animation: fadeUp 360ms ease-out both;
-}
-
-/* Skeleton pulse */
-@keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: .55; }
-}
-.skeleton {
-    background: #EEF0F3;
-    border-radius: 6px;
-    animation: pulse 1.2s ease-in-out infinite;
-}
-
-/* Remove the default blue tap highlight on mobile */
-* { -webkit-tap-highlight-color: transparent; }
-
-/* Visual edits debug wrapper preservation */
-@layer base {
-    [data-debug-wrapper="true"] { display: contents !important; }
+@layer components {
+  .btn-primary {
+    @apply bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors disabled:opacity-50;
+  }
+  
+  .btn-secondary {
+    @apply bg-gray-200 hover:bg-gray-300 text-gray-900 font-medium py-2 px-4 rounded-md transition-colors;
+  }
+  
+  .input-field {
+    @apply w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent;
+  }
+  
+  .card {
+    @apply bg-white border border-gray-200 rounded-lg p-6 shadow-sm;
+  }
 }
