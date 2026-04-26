@@ -14,13 +14,24 @@ function signToken(userId) {
 }
 
 function publicUser(u) {
-    return { id: u.id, name: u.name, email: u.email, created_at: u.created_at };
+    return { 
+        id: u.id, 
+        firstName: u.firstName,
+        lastName: u.lastName,
+        name: `${u.firstName} ${u.lastName}`,
+        email: u.email, 
+        phone: u.phone,
+        country: u.country,
+        isAdmin: u.isAdmin,
+        emailPreferences: u.emailPreferences,
+        created_at: u.created_at 
+    };
 }
 
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
-    const { name, email, password } = req.body;
-    if (!name || !email || !password || password.length < 6) {
+    const { firstName, lastName, email, password, phone, country } = req.body;
+    if (!firstName || !lastName || !email || !password || password.length < 6) {
         return res.status(400).json({ detail: 'Invalid payload' });
     }
     const existing = await User.findOne({ email: email.toLowerCase() });
@@ -28,7 +39,21 @@ router.post('/register', async (req, res) => {
 
     const hash = await bcrypt.hash(password, 10);
     const userId = uuidv4();
-    const user = await User.create({ id: userId, name, email: email.toLowerCase(), password_hash: hash });
+    const user = await User.create({ 
+        id: userId, 
+        firstName, 
+        lastName, 
+        email: email.toLowerCase(), 
+        phone: phone || '',
+        country: country || '',
+        password_hash: hash,
+        isAdmin: false,
+        emailPreferences: {
+            displayName: `${firstName} ${lastName}`,
+            notificationEmail: email.toLowerCase(),
+            customFooter: ''
+        }
+    });
     await Budget.create({ user_id: userId, monthly_limit: 0 });
     res.json({ token: signToken(userId), user: publicUser(user) });
 });

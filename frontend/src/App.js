@@ -17,6 +17,7 @@ import Dashboard from '@/pages/Dashboard';
 import Subscriptions from '@/pages/Subscriptions';
 import Analytics from '@/pages/Analytics';
 import Settings from '@/pages/Settings';
+import TestingMode from '@/pages/TestingMode';
 
 /* Route guard — redirects unauthenticated users to /auth */
 const Protected = ({ children }) => {
@@ -51,6 +52,7 @@ function App() {
                         <Route path="subscriptions" element={<Subscriptions />} />
                         <Route path="analytics" element={<Analytics />} />
                         <Route path="settings" element={<Settings />} />
+                        <Route path="testing-mode" element={<TestingMode />} />
                     </Route>
                     <Route path="*" element={<Navigate to="/" replace />} />
                 </Routes>

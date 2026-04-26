@@ -39,7 +39,7 @@ async function runRenewalJob() {
             });
 
             const user = await User.findOne({ id: sub.user_id });
-            if (user) await sendRenewalEmail(user.email, user.name, sub, daysLeft);
+            if (user) await sendRenewalEmail(user, sub, daysLeft);
         }
     }
 }

@@ -9,7 +9,10 @@ import { Mail, Lock, User, ArrowRight, Layers } from 'lucide-react';
 
 export default function AuthPage() {
     const [mode, setMode] = useState('login'); // 'login' | 'register'
-    const [name, setName] = useState('');
+    const [firstName, setFirstName] = useState('');
+    const [lastName, setLastName] = useState('');
+    const [phone, setPhone] = useState('');
+    const [country, setCountry] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const { login, register, loading } = useAuth();
@@ -20,7 +23,7 @@ export default function AuthPage() {
         e.preventDefault();
         const action = mode === 'login'
             ? login(email, password)
-            : register(name, email, password);
+            : register(firstName, lastName, email, password, phone, country);
         const result = await action;
         if (result.ok) {
             toast.success(mode === 'login' ? 'Welcome back!' : 'Account created.');
@@ -76,8 +79,18 @@ export default function AuthPage() {
 
                     <form onSubmit={onSubmit} className="space-y-4" data-testid="auth-form">
                         {mode === 'register' && (
-                            <Field icon={<User size={16} strokeWidth={1.5} />} placeholder="Full name"
-                                   value={name} onChange={setName} testId="auth-name-input" type="text" />
+                            <>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <Field icon={<User size={16} strokeWidth={1.5} />} placeholder="First name"
+                                           value={firstName} onChange={setFirstName} testId="auth-firstname-input" type="text" />
+                                    <Field icon={<User size={16} strokeWidth={1.5} />} placeholder="Last name"
+                                           value={lastName} onChange={setLastName} testId="auth-lastname-input" type="text" />
+                                </div>
+                                <Field icon={<User size={16} strokeWidth={1.5} />} placeholder="Phone (optional)"
+                                       value={phone} onChange={setPhone} testId="auth-phone-input" type="tel" required={false} />
+                                <Field icon={<User size={16} strokeWidth={1.5} />} placeholder="Country (optional)"
+                                       value={country} onChange={setCountry} testId="auth-country-input" type="text" required={false} />
+                            </>
                         )}
                         <Field icon={<Mail size={16} strokeWidth={1.5} />} placeholder="Email address"
                                value={email} onChange={setEmail} testId="auth-email-input" type="email" />
@@ -125,7 +138,7 @@ export default function AuthPage() {
 }
 
 /* Small input field wrapper — icon + input with minimal border styling */
-const Field = ({ icon, placeholder, value, onChange, testId, type }) => (
+const Field = ({ icon, placeholder, value, onChange, testId, type, required = true }) => (
     <div className="flex items-center gap-2 border border-[#E5E7EB] rounded-md px-3 py-2.5
                      focus-within:border-[#002FA7] focus-within:ring-2 focus-within:ring-[#002FA7]/20
                      transition-all bg-white">
@@ -133,7 +146,7 @@ const Field = ({ icon, placeholder, value, onChange, testId, type }) => (
         <input
             className="flex-1 text-sm bg-transparent outline-none placeholder:text-[#A1A1AA]"
             type={type}
-            required
+            required={required}
             placeholder={placeholder}
             value={value}
             onChange={(e) => onChange(e.target.value)}

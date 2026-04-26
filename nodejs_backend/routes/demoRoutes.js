@@ -29,7 +29,7 @@ router.post('/send-test-email', auth, async (req, res) => {
     let emailStatus = 'skipped', emailError = null;
     if (process.env.RESEND_API_KEY) {
         try {
-            await sendRenewalEmail(req.user.email, req.user.name, demoSub, daysLeft);
+            await sendRenewalEmail(req.user, demoSub, daysLeft);
             emailStatus = 'sent';
         } catch (err) {
             emailStatus = 'failed';

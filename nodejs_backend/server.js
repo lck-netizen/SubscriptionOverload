@@ -15,6 +15,8 @@ const subRoutes = require('./routes/subscriptionRoutes');
 const analyticsRoutes = require('./routes/analyticsRoutes');
 const budgetRoutes = require('./routes/budgetRoutes');
 const notifRoutes = require('./routes/notificationRoutes');
+const profileRoutes = require('./routes/profileRoutes');
+const ottRoutes = require('./routes/ottRoutes');
 const { runRenewalJob } = require('./services/renewalJob');
 
 const app = express();
@@ -33,6 +35,8 @@ app.use('/api/subscriptions', subRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/budget', budgetRoutes);
 app.use('/api/notifications', notifRoutes);
+app.use('/api/profile', profileRoutes);
+app.use('/api/otts', ottRoutes);
 app.use('/api/recommendations', require('./routes/recommendationRoutes'));
 app.use('/api/demo', require('./routes/demoRoutes'));
 

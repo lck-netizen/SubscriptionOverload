@@ -86,6 +86,14 @@ export default function AppShell() {
                             <div className="text-xs text-[#A1A1AA] truncate">{user?.email}</div>
                         </div>
                     </div>
+                    {user?.isAdmin && (
+                        <button
+                            onClick={() => navigate('/app/testing-mode')}
+                            className="w-full mb-2 flex items-center justify-center gap-2 bg-[#18181B] hover:bg-[#27272A] text-white text-xs py-2 rounded-md transition-colors"
+                        >
+                            🔧 Testing Mode
+                        </button>
+                    )}
                     <button
                         onClick={() => { logout(); navigate('/auth'); }}
                         data-testid="logout-button"
