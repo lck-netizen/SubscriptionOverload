@@ -7,6 +7,8 @@ export default function SubscriptionsPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all'); // all, active, cancelled
   const [searchQuery, setSearchQuery] = useState('');
+  const [priceRange, setPriceRange] = useState({ min: '', max: '' });
+  const [dateRange, setDateRange] = useState({ from: '', to: '' });
   const [showModal, setShowModal] = useState(false);
   const [editingSub, setEditingSub] = useState(null);
 
@@ -49,8 +51,34 @@ export default function SubscriptionsPage() {
   const filteredSubscriptions = subscriptions.filter(sub => {
     const matchesFilter = filter === 'all' || sub.status === filter;
     const matchesSearch = sub.service_name.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesFilter && matchesSearch;
+    
+    // Price filter
+    const matchesPrice = 
+      (!priceRange.min || sub.cost >= Number(priceRange.min)) &&
+      (!priceRange.max || sub.cost <= Number(priceRange.max));
+    
+    // Date filter
+    const matchesDate = 
+      (!dateRange.from || sub.renewal_date >= dateRange.from) &&
+      (!dateRange.to || sub.renewal_date <= dateRange.to);
+    
+    return matchesFilter && matchesSearch && matchesPrice && matchesDate;
   });
+
+  const clearFilters = () => {
+    setFilter('all');
+    setSearchQuery('');
+    setPriceRange({ min: '', max: '' });
+    setDateRange({ from: '', to: '' });
+  };
+
+  const hasActiveFilters = 
+    filter !== 'all' || 
+    searchQuery !== '' || 
+    priceRange.min !== '' || 
+    priceRange.max !== '' ||
+    dateRange.from !== '' ||
+    dateRange.to !== '';
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -75,24 +103,125 @@ export default function SubscriptionsPage() {
       {/* Filters */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <input
-              type="text"
-              placeholder="Search subscriptions..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="input-field"
-            />
-            <select
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              className="input-field"
-            >
-              <option value="all">All Subscriptions</option>
-              <option value="active">Active</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-medium text-gray-700">Filters</h3>
+            {hasActiveFilters && (
+              <button
+                onClick={clearFilters}
+                className="text-sm text-blue-600 hover:text-blue-700"
+              >
+                Clear all
+              </button>
+            )}
           </div>
+
+          <div className="space-y-4">
+            {/* Search and Status */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <input
+                type="text"
+                placeholder="Search subscriptions..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="input-field"
+              />
+              <select
+                value={filter}
+                onChange={(e) => setFilter(e.target.value)}
+                className="input-field"
+              >
+                <option value="all">All Status</option>
+                <option value="active">Active</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+            </div>
+
+            {/* Price Range */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">
+                  Price Range
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    type="number"
+                    placeholder="Min ₹"
+                    value={priceRange.min}
+                    onChange={(e) => setPriceRange({ ...priceRange, min: e.target.value })}
+                    className="input-field"
+                    min="0"
+                  />
+                  <input
+                    type="number"
+                    placeholder="Max ₹"
+                    value={priceRange.max}
+                    onChange={(e) => setPriceRange({ ...priceRange, max: e.target.value })}
+                    className="input-field"
+                    min="0"
+                  />
+                </div>
+              </div>
+
+              {/* Date Range */}
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">
+                  Renewal Date Range
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    type="date"
+                    placeholder="From"
+                    value={dateRange.from}
+                    onChange={(e) => setDateRange({ ...dateRange, from: e.target.value })}
+                    className="input-field"
+                  />
+                  <input
+                    type="date"
+                    placeholder="To"
+                    value={dateRange.to}
+                    onChange={(e) => setDateRange({ ...dateRange, to: e.target.value })}
+                    className="input-field"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Active Filters Display */}
+            {hasActiveFilters && (
+              <div className="flex flex-wrap gap-2 pt-2">
+                {filter !== 'all' && (
+                  <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs">
+                    Status: {filter}
+                    <button onClick={() => setFilter('all')} className="hover:text-blue-900">×</button>
+                  </span>
+                )}
+                {searchQuery && (
+                  <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs">
+                    Search: "{searchQuery}"
+                    <button onClick={() => setSearchQuery('')} className="hover:text-blue-900">×</button>
+                  </span>
+                )}
+                {(priceRange.min || priceRange.max) && (
+                  <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs">
+                    Price: ₹{priceRange.min || '0'} - ₹{priceRange.max || '∞'}
+                    <button onClick={() => setPriceRange({ min: '', max: '' })} className="hover:text-blue-900">×</button>
+                  </span>
+                )}
+                {(dateRange.from || dateRange.to) && (
+                  <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs">
+                    Date: {dateRange.from || '...'} to {dateRange.to || '...'}
+                    <button onClick={() => setDateRange({ from: '', to: '' })} className="hover:text-blue-900">×</button>
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Results Summary */}
+        <div className="mb-4 text-sm text-gray-600">
+          Showing <span className="font-semibold text-gray-900">{filteredSubscriptions.length}</span> of{' '}
+          <span className="font-semibold text-gray-900">{subscriptions.length}</span> subscriptions
         </div>
 
         {/* Subscriptions List */}
@@ -100,7 +229,15 @@ export default function SubscriptionsPage() {
           <div className="text-center py-12">Loading...</div>
         ) : filteredSubscriptions.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-lg">
-            <p className="text-gray-500">No subscriptions found</p>
+            <p className="text-gray-500 mb-2">No subscriptions found</p>
+            {hasActiveFilters && (
+              <button
+                onClick={clearFilters}
+                className="text-sm text-blue-600 hover:text-blue-700 underline"
+              >
+                Clear filters
+              </button>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

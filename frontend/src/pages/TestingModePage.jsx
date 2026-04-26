@@ -25,6 +25,7 @@ export default function TestingModePage() {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [priceRange, setPriceRange] = useState({ min: '', max: '' });
   const [showModal, setShowModal] = useState(false);
   const [editingOTT, setEditingOTT] = useState(null);
 
@@ -40,7 +41,7 @@ export default function TestingModePage() {
     if (user?.isAdmin) {
       loadOTTs();
     }
-  }, [user, selectedCategory, searchQuery, statusFilter]);
+  }, [user, selectedCategory, searchQuery, statusFilter, priceRange]);
 
   const loadOTTs = async () => {
     setLoading(true);
@@ -155,32 +156,67 @@ export default function TestingModePage() {
 
         {/* Filters */}
         <div className="bg-gray-800 border border-gray-700 rounded-lg p-4 mb-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <input
-              type="text"
-              placeholder="Search platforms..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
-            />
-            <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              className="bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
-            >
-              {CATEGORIES.map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
-            </select>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
-            >
-              <option value="all">All Status</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-            </select>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              <input
+                type="text"
+                placeholder="Search platforms..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+              />
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+              >
+                {CATEGORIES.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500"
+              >
+                <option value="all">All Status</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
+
+            {/* Price Range Filter */}
+            <div>
+              <label className="block text-xs text-gray-400 mb-2">
+                Filter by Price Range
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <input
+                  type="number"
+                  placeholder="Min Price ₹"
+                  value={priceRange.min}
+                  onChange={(e) => setPriceRange({ ...priceRange, min: e.target.value })}
+                  className="bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+                  min="0"
+                />
+                <input
+                  type="number"
+                  placeholder="Max Price ₹"
+                  value={priceRange.max}
+                  onChange={(e) => setPriceRange({ ...priceRange, max: e.target.value })}
+                  className="bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
+                  min="0"
+                />
+              </div>
+              {(priceRange.min || priceRange.max) && (
+                <button
+                  onClick={() => setPriceRange({ min: '', max: '' })}
+                  className="mt-2 text-xs text-blue-400 hover:text-blue-300"
+                >
+                  Clear price filter
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
@@ -440,6 +476,25 @@ function OTTModal({ ott, onClose, onSaved }) {
           <div className="flex gap-3 pt-4">
             <button
               type="submit"
+              disabled={saving}
+              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded font-medium disabled:opacity-50"
+            >
+              {saving ? 'Saving...' : 'Save'}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 text-gray-400 hover:text-white"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+"
               disabled={saving}
               className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded font-medium disabled:opacity-50"
             >
